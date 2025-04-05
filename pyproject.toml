@@ -1,19 +1,15 @@
-[project]
+[tool.poetry]
 name = "f1-pitstop-advisor"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "kw-00",email = "christopher.p.wojcik@gmail.com"}
-]
+authors = ["kw-00 <christopher.p.wojcik@gmail.com>"]
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "pandas (>=2.2.3,<3.0.0)"
-]
+packages = [{include = "f1_pitstop_advisor"}]
 
+[tool.poetry.dependencies]
+python = ">=3.12"
+pandas = ">=2.2.3,<3.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-package-mode = false
