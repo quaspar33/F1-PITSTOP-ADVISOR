@@ -1,3 +1,5 @@
+from pyexpat.errors import messages
+
 import pandas as pd
 import fastf1 as f1
 import matplotlib.pyplot as plt
@@ -6,6 +8,7 @@ from datetime import datetime
 import warnings
 from fastf1.core import Session
 from typing import List
+
 
 
 def _get_sessions(cutoff_year: int) -> List[Session]:
@@ -47,10 +50,33 @@ def _get_sessions(cutoff_year: int) -> List[Session]:
             print(f"Błąd podczas pobierania kalendarza dla roku {year}: {e}")
     return sessions
 
-def extract_historical_data(cutoff_year: int) -> pd.DataFrame:
+def extract_flag_data(cutoff_year: int) -> pd.DataFrame:
+    target_flags = ['YELLOW', 'DOUBLE YELLOW', 'RED']
     sessions = _get_sessions(cutoff_year)
-    pass
+    all_races_data = []
 
-def extract_race_data(cutoff_year: int) -> pd.DataFrame:
-    sessions = _get_sessions(cutoff_year)
-    pass
+    for session in sessions:
+        try:
+            session.load(messages=True)
+
+            race_data = {
+                'Year': session.event['EventDate'].year,
+                'Race': session.event['EventName'],
+                'Round': session.event.round
+            }
+
+            messages_df = session.race_control_messages
+            for flag in target_flags:
+                count = sum(messages_df['Flag'] == flag)
+                race_data[flag] = count
+
+            all_races_data.append(race_data)
+
+        except Exception as e:
+            race_info = f"{session.event.year} {session.event['EventName']}"
+            print(f"    Błąd podczas analizy danych dla {race_info}: {e}")
+
+    if all_races_data:
+        return pd.DataFrame(all_races_data)
+    else:
+        raise ValueError("Nie znaleziono danych do utworzenia DataFramu.")
