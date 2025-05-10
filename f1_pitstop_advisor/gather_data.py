@@ -1,12 +1,9 @@
 import pandas as pd
-
-
 import fastf1 as f1
 import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
 import warnings
-
 from fastf1.core import Session
 from typing import List
 
