@@ -62,7 +62,7 @@ def extract_flag_data(cutoff_year: int) -> pd.DataFrame:
             race_data = {
                 'Year': session.event['EventDate'].year,
                 'Race': session.event['EventName'],
-                'Round': session.event.round
+                'Round': session.event['RoundNumber']
             }
 
             messages_df = session.race_control_messages
