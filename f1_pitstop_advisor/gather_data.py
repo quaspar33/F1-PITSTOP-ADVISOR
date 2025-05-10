@@ -17,7 +17,7 @@ def _get_sessions(cutoff_year: int) -> List[Session]:
     sessions = []
 
     current_year = datetime.now().year
-    years = range(2022, current_year + 1)
+    years = range(cutoff_year, current_year + 1)
 
     for year in years:
         print(f"\nAnalizuję rok {year}...")
