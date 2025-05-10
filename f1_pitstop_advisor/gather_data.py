@@ -80,3 +80,65 @@ def extract_flag_data(cutoff_year: int) -> pd.DataFrame:
         return pd.DataFrame(all_races_data)
     else:
         raise ValueError("Nie znaleziono danych do utworzenia DataFramu.")
+
+def extract_pitstop_data(cutoff_year: int) -> pd.DataFrame:
+    sessions = _get_sessions(cutoff_year)
+    all_pitstops_data = []
+
+    for session in sessions:
+        try:
+            session.load(laps=True)
+
+            year = session.event['EventDate'].year
+            race_name = session.event['EventName']
+            race_round = session.event['RoundNumber']
+
+            print(f"  Analizuję pit stopy dla wyścigu: {race_name} {year}")
+
+            drivers = session.drivers
+
+            for driver in drivers:
+                try:
+                    driver_info = session.get_driver(driver)
+                    driver_name = driver_info['Abbreviation']
+                    team = driver_info['TeamName']
+
+                    driver_laps = session.laps.pick_driver(driver)
+
+                    for _, lap in driver_laps[driver_laps['PitInTime'].notna()].iterrows():
+                        lap_number = lap['LapNumber']
+
+                        previous_compound = None
+                        previous_laps = driver_laps[driver_laps['LapNumber'] < lap_number]
+                        if not previous_laps.empty:
+                            previous_compound = previous_laps.iloc[-1]['Compound']
+
+                        next_compound = None
+                        next_laps = driver_laps[driver_laps['LapNumber'] > lap_number]
+                        if not next_laps.empty:
+                            next_compound = next_laps.iloc[0]['Compound']
+
+                        pitstop_data = {
+                            'Year': year,
+                            'Race': race_name,
+                            'Round': race_round,
+                            'Driver': driver_name,
+                            'Team': team,
+                            'LapNumber': lap_number,
+                            'CompoundChangedFrom': previous_compound,
+                            'CompoundChangedTo': next_compound
+                        }
+
+                        all_pitstops_data.append(pitstop_data)
+
+                except Exception as e:
+                    print(f"    Błąd podczas analizy danych kierowcy {driver} w {race_name}: {e}")
+
+        except Exception as e:
+            race_info = f"{session.event.year} {session.event['EventName']}"
+            print(f"    Błąd podczas analizy pit stopów dla {race_info}: {e}")
+
+    if all_pitstops_data:
+        return pd.DataFrame(all_pitstops_data)
+    else:
+        raise ValueError("Nie znaleziono danych o pit stopach dla podanego okresu.")
