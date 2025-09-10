@@ -24,6 +24,7 @@ def get_lap_data_with_weather(session: Session) -> pd.DataFrame:
     laps["TmpJoinIndex"] = pd.Series(weather_indexer)
 
     # Merge laps with weather data
-    data = laps.merge(weather_data, on="TmpJoinIndex")
-    data.drop("TmpJoinIndex", axis="columns", inplace=True)
+    data = laps.merge(weather_data, on="TmpJoinIndex", suffixes=("", "_y"))
+
+    data.drop(["TmpJoinIndex", "Time_y"], axis="columns", inplace=True)
     return data
