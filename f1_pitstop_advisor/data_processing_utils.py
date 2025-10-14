@@ -1,3 +1,4 @@
+from typing import Iterable, List
 import pandas as pd
 import numpy as np
 
@@ -82,4 +83,51 @@ def add_z_score_for_laps(data: pd.DataFrame, inplace: bool) -> pd.DataFrame | No
     else:
         return None
     
+
+def get_refined_lap_data_with_z_score(sessions: List[Session]) -> pd.DataFrame:
+    if not sessions:
+        raise ValueError(f"Parameter \"sessions\" may not be an empty list.")
+    data_list = []
+    for session in sessions:
+        session_data = get_lap_data_with_weather(session)
+        add_z_score_for_laps(session_data, inplace=True)
+        session_data = session_data.convert_dtypes()
+        data_list.append(session_data)
+
+    data = pd.concat(data_list, ignore_index=True)
+    
+    # Add a feature determining whether there was a pit stop performed during each lap
+    data["IsPitLap"] = ~np.isnat(data["PitInTime"])
+
+    # Select only relevant columns for further processing
+    selected_columns = [
+        "LapTimeZScore", "IsPitLap", "Compound", "TyreLife", "FreshTyre", # Lap info
+        "AirTemp", "Humidity", "Pressure", "Rainfall", "TrackTemp", "WindDirection", "WindSpeed" # Weather data
+    ]
+    filtered_data = data.loc[:, selected_columns]
+
+    # Convert categorical data to boolean values
+    final_data = pd.get_dummies(filtered_data)
+    return final_data
+
+
+def get_refined_lap_data_with_z_score_for_circuit(sessions: List[Session], circuit: int | str) -> pd.DataFrame:
+    selected_sessions = []
+    for session in sessions:
+        circuit_info = session.session_info["Meeting"]["Circuit"]
+        if isinstance(circuit, int) and circuit == circuit_info["Key"]:
+            session_matches_circuit = True
+        elif isinstance(circuit, str) and circuit == circuit_info["ShortName"]:
+            session_matches_circuit = True
+        else:
+            session_matches_circuit = False
+        if session_matches_circuit:
+            selected_sessions.append(session)
+    
+    try:
+        return get_refined_lap_data_with_z_score(selected_sessions)
+    except ValueError:
+        raise KeyError("No sessions found for given circuit.")
+        
+
     
