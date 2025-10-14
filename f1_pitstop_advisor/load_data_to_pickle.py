@@ -1,10 +1,11 @@
 import sys
+import pickle
 from f1_pitstop_advisor import gather_data
 
 if len(sys.argv) > 1:
     path = sys.argv[0]
 else:
-    path = "ig_sessions.pickle"
+    path = "f1_pitstop_advisor/ig_sessions.pickle"
 
 sessions = gather_data._get_sessions(2022)
 
@@ -18,8 +19,6 @@ for i, session in zip(range(len(sessions)), sessions):
         print(f"Failed to load session {i + 1} of {len(sessions)}")
 
 # Save sessions to pickle for quick reuse
-import pickle
-
 with open(path, "wb") as file:
     pickle.dump(sessions, file)
 
