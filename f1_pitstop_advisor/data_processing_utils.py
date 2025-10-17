@@ -101,7 +101,7 @@ def get_refined_lap_data_with_z_score(sessions: List[Session]) -> pd.DataFrame:
 
     # Select only relevant columns for further processing
     selected_columns = [
-        "LapTimeZScore", "IsPitLap", "Compound", "TyreLife", "FreshTyre", # Lap info
+        "LapTimeZScore", "IsPitLap", "Compound", "TyreLife", "FreshTyre", "LapNumber", # Lap info
         "AirTemp", "Humidity", "Pressure", "Rainfall", "TrackTemp", "WindDirection", "WindSpeed" # Weather data
     ]
     filtered_data = data.loc[:, selected_columns]
