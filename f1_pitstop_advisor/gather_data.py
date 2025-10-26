@@ -11,13 +11,14 @@ from typing import List
 
 
 
-def _get_sessions(cutoff_year: int) -> List[Session]:
+def _get_sessions(cutoff_date: datetime) -> List[Session]:
     warnings.filterwarnings('ignore')
 
     sessions = []
 
-    current_year = datetime.now().year
-    years = range(cutoff_year, current_year + 1)
+    start_year = 2022
+    end_year = cutoff_date.year
+    years = range(start_year, end_year + 1)
 
     for year in years:
         print(f"\nAnalizuję rok {year}...")
@@ -26,9 +27,8 @@ def _get_sessions(cutoff_year: int) -> List[Session]:
             race_calendar = f1.get_event_schedule(year)
             races = race_calendar[race_calendar['EventFormat'] == 'conventional']
 
-            if year == current_year:
-                today = pd.Timestamp.now()
-                races = races[races['EventDate'] < today]
+            cutoff_timestamp = pd.Timestamp(cutoff_date)
+            races = races[races['EventDate'] < cutoff_timestamp]
 
             if races.empty:
                 print(f"Brak wyścigów dla roku {year}")
