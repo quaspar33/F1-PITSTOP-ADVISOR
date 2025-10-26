@@ -12,6 +12,7 @@ pandas = ">=2.2.3,<3.0.0"
 ipykernel = "^6.29.5"
 fastf1 = "^3.5.3"
 scikit-learn = "^1.7.1"
+xgboost = "^3.0.5"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
