@@ -1,13 +1,14 @@
 from typing import Iterable, List
 import pandas as pd
 import numpy as np
+import pickle
 
 from fastf1.core import Session
 
 
 def get_lap_data_with_weather(session: Session) -> pd.DataFrame:
     # Prepare raw data
-    weather_data: pd.DataFrame = session.weather_data.copy() # type: ignore
+    weather_data: pd.DataFrame = session.weather_data.copy()  # type: ignore
     laps: pd.DataFrame = session.laps.copy()
 
     # Drop laps with missing lap time
@@ -17,10 +18,12 @@ def get_lap_data_with_weather(session: Session) -> pd.DataFrame:
     weather_for_intervals = weather_data.loc[:, ["Time"]].copy()
     weather_for_intervals["EndTime"] = weather_for_intervals["Time"].shift(-1)
     weather_for_intervals.loc[weather_for_intervals.last_valid_index(), "EndTime"] = (
-        weather_for_intervals.loc[weather_for_intervals.last_valid_index(), "Time"] + np.timedelta64(1, "m") # type: ignore
+            weather_for_intervals.loc[weather_for_intervals.last_valid_index(), "Time"] + np.timedelta64(1, "m")
+    # type: ignore
     )
-    weather_interval_index = pd.IntervalIndex.from_arrays(weather_for_intervals["Time"], weather_for_intervals["EndTime"], closed="both")
-    weather_indexer, _ = weather_interval_index.get_indexer_non_unique(laps["Time"]) # type: ignore
+    weather_interval_index = pd.IntervalIndex.from_arrays(weather_for_intervals["Time"],
+                                                          weather_for_intervals["EndTime"], closed="both")
+    weather_indexer, _ = weather_interval_index.get_indexer_non_unique(laps["Time"])  # type: ignore
     weather_data["TmpJoinIndex"] = weather_data.index
     laps["TmpJoinIndex"] = pd.Series(weather_indexer)
 
@@ -40,7 +43,7 @@ def add_lap_time_seconds(data: pd.DataFrame, inplace: bool) -> pd.DataFrame | No
         return data
     else:
         return None
-    
+
 
 def add_z_score_for_laps(data: pd.DataFrame, inplace: bool) -> pd.DataFrame | None:
     if not inplace:
@@ -82,7 +85,7 @@ def add_z_score_for_laps(data: pd.DataFrame, inplace: bool) -> pd.DataFrame | No
         return data
     else:
         return None
-    
+
 
 def get_refined_lap_data_with_z_score(sessions: List[Session]) -> pd.DataFrame:
     if not sessions:
@@ -95,14 +98,25 @@ def get_refined_lap_data_with_z_score(sessions: List[Session]) -> pd.DataFrame:
         data_list.append(session_data)
 
     data = pd.concat(data_list, ignore_index=True)
-    
+
     # Add a feature determining whether there was a pit stop performed during each lap
     data["IsPitLap"] = ~np.isnat(data["PitInTime"])
 
     # Select only relevant columns for further processing
     selected_columns = [
-        "LapTimeZScore", "IsPitLap", "Compound", "TyreLife", "FreshTyre", "LapNumber", # Lap info
-        "AirTemp", "Humidity", "Pressure", "Rainfall", "TrackTemp", "WindDirection", "WindSpeed" # Weather data
+        "LapTimeZScore",
+        "IsPitLap",
+        "Compound",
+        "TyreLife",
+        "FreshTyre",
+        "LapNumber",
+        "AirTemp",
+        "Humidity",
+        "Pressure",
+        "Rainfall",
+        "TrackTemp",
+        "WindDirection",
+        "WindSpeed"
     ]
     filtered_data = data.loc[:, selected_columns]
 
@@ -123,11 +137,8 @@ def get_refined_lap_data_with_z_score_for_circuit(sessions: List[Session], circu
             session_matches_circuit = False
         if session_matches_circuit:
             selected_sessions.append(session)
-    
+
     try:
         return get_refined_lap_data_with_z_score(selected_sessions)
     except ValueError:
         raise KeyError("No sessions found for given circuit.")
-        
-
-    
