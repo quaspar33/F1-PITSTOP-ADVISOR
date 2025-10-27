@@ -250,8 +250,9 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
         for search_key in self.template_searches.keys():
             self.searches_and_circuits_[search_key] = {}
 
+        i = 1
         for circuit, data in self.data.items():
-            print(f"==== Fitting models for {circuit} ====")
+            print(f"==== Fitting models for {circuit} ({i}/{len(self.data)}) ====")
             circuit_start_time = time.time()
             
             X, y = data.drop([self.target_label], axis="columns"), data[self.target_label]
@@ -265,7 +266,7 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
 
                 print(f"Took {round(time.time() - model_start_time, 2)} seconds.")
             
-            print(f"Took a total of {round(time.time() - circuit_start_time, 2)} seconds to fit all models for circuit \"{circuit}\"")
+            print(f"Took a total of {round(time.time() - circuit_start_time, 2)} seconds to fit all models for circuit \"{circuit}\".")
             print()
 
     def score(self) -> pd.DataFrame:
