@@ -2,9 +2,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 import numpy as np
 import pickle
-
-from numpy.typing import ArrayLike
-from sklearn._typing import MatrixLike
+import pathlib
 
 from sklearn.linear_model import LinearRegression, RidgeCV, LassoCV, ElasticNetCV
 from sklearn.svm import SVR
@@ -21,16 +19,44 @@ from sklearn.base import clone
 
 from typing import Callable, Dict, List
 from fastf1.core import Session
+from datetime import datetime
 
 import time
 
-class DataPreparer:
-    def __init__(self, data_creation_function: Callable[[List[Session]], pd.DataFrame], session_path: str, data_path: str) -> None:
-        pass
-        
+import f1_pitstop_advisor
+import f1_pitstop_advisor.gather_data
+
+def prepare_data(
+        self, 
+        session_path: str, 
+        data_path: str,
+        data_creation_function: Callable[[List[Session]], pd.DataFrame],
+        cutoff_date: datetime) -> pd.DataFrame | Dict[str, pd.DataFrame]:
+    
+    if pathlib.Path(data_path).is_file():
+        try:
+            data = pd.read_csv(data_path, header=None)
+        except pd.errors.ParserError:
+            with open(data_path, "rb") as file:
+                data = pickle.load(file)
+
+    else:
+        if pathlib.Path(session_path).is_file():
+            with open(session_path, "rb") as file:
+                sessions: List[Session] = pickle.load(file)
+        else:
+            sessions = f1_pitstop_advisor.gather_data._get_sessions(cutoff_date)
+            with open(session_path, "wb") as file:
+                pickle.dump(sessions, file)
+
+        data = data_creation_function(sessions)
+        with open(data_path, "wb") as file:
+            pickle.dump(data, file)
+
+    return data 
 
 
-default_searches = {
+DEFAULT_SEARCHES = {
     # Linear regression
     "LinearRegression": GridSearchCV(
         make_pipeline(StandardScaler(), PCA(), LinearRegression()),
@@ -191,7 +217,7 @@ class RegressionModelTest(AbstractRegressionModelTest):
     def __init__(self, data: pd.DataFrame, target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
         self.data = data
         self.target_label = target_label
-        self.searches = default_searches if searches is None else searches
+        self.searches = DEFAULT_SEARCHES if searches is None else searches
 
         if target_label not in self.data.columns:
             raise KeyError(f"Invalid target label. Column \"{target_label}\" is not present in data.")
@@ -219,7 +245,7 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
     def __init__(self, data: Dict[str, pd.DataFrame], target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
         self.data = data
         self.target_label = target_label
-        self.searches = default_searches if searches is None else searches
+        self.searches = DEFAULT_SEARCHES if searches is None else searches
 
         for df in data.values():
             if target_label not in df.columns:
@@ -257,8 +283,6 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
             "Score": scores
         }) 
 
-
-    
         
 def create_regression_model_test(
         data: pd.DataFrame | Dict[str, pd.DataFrame], 
