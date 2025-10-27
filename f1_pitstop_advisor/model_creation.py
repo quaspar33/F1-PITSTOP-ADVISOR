@@ -64,27 +64,18 @@ DEFAULT_SEARCHES = {
     ),
 
     "RidgeCV": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), RidgeCV()),
-        {
-            "pca__n_components": [0.98, 0.95, 0.9],
-            "ridgecv__alphas": [0.001, 0.01, 0.1, 1.0]
-        }
+        make_pipeline(StandardScaler(), PCA(), RidgeCV(alphas=(0.1, 1.0, 10.0))),
+        {"pca__n_components": [0.98, 0.95, 0.9]}
     ),
 
     "LassoCV": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), LassoCV(max_iter=100_000)),
-        {
-            "pca__n_components": [0.98, 0.95, 0.9],
-            "lassocv__alphas": [0.001, 0.01, 0.1, 1.0]
-        }
+        make_pipeline(StandardScaler(), PCA(), LassoCV(max_iter=100_000, alphas=[0.001, 0.01, 0.1, 1.0])),
+        {"pca__n_components": [0.98, 0.95, 0.9]}
     ),
 
     "ElasticNetCV": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), ElasticNetCV(max_iter=100_000)),
-        {
-            "pca__n_components": [0.98, 0.95, 0.9],
-            "elasticnetcv__l1_ratio": [0.2, 0.5, 0.8]
-        }
+        make_pipeline(StandardScaler(), PCA(), ElasticNetCV(max_iter=100_000, l1_ratio=[0.2, 0.5, 0.8])),
+        {"pca__n_components": [0.98, 0.95, 0.9]}
     ),
 
     # Polynomial regression
@@ -97,29 +88,26 @@ DEFAULT_SEARCHES = {
     ),
 
     "PolynomialRidgeCV": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), RidgeCV()),
+        make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), RidgeCV(alphas=(0.1, 1.0, 10.0))),
         {
             "polynomialfeatures__degree": [2, 3],
-            "pca__n_components": [0.98, 0.95, 0.9],
-            "ridgecv__alphas": [0.01, 0.1, 1.0]
+            "pca__n_components": [0.98, 0.95, 0.9]
         }
     ),
 
     "PolynomialLassoCV": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), LassoCV(max_iter=100_000)),
+        make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), LassoCV(max_iter=100_000, alphas=[0.01, 0.1, 1])),
         {
             "polynomialfeatures__degree": [2, 3],
-            "pca__n_components": [0.98, 0.95, 0.9],
-            "lassocv__alphas": [0.01, 0.1, 1.0]
+            "pca__n_components": [0.98, 0.95, 0.9]
         }
     ),
 
     "PolynomialElasticNetCV": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), ElasticNetCV(max_iter=100_000)),
+        make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), ElasticNetCV(max_iter=100_000, l1_ratio=[0.2, 0.5, 0.8])),
         {
             "polynomialfeatures__degree": [2, 3],
-            "pca__n_components": [0.98, 0.95, 0.9],
-            "elasticnetcv__l1_ratio": [0.2, 0.5, 0.8]
+            "pca__n_components": [0.98, 0.95, 0.9]
         }
     ),
 
@@ -203,6 +191,7 @@ DEFAULT_SEARCHES = {
     ),
 }
 
+
 class AbstractRegressionModelTest(ABC):
 
     @abstractmethod
@@ -258,7 +247,7 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
             models_and_circuits[search_key] = {}
 
         for circuit, data in self.data.items():
-            print(f"Fitting models for {circuit}...")
+            print(f"==== Fitting models for {circuit} ====")
             circuit_start_time = time.time()
             
             X, y = data.drop([self.target_label], axis="columns"), data[self.target_label]
