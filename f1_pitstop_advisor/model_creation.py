@@ -202,28 +202,32 @@ class AbstractRegressionModelTest(ABC):
     def score(self) -> pd.DataFrame:
         pass
 
+
 class RegressionModelTest(AbstractRegressionModelTest):
     def __init__(self, data: pd.DataFrame, target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
         self.data = data
         self.target_label = target_label
-        self.searches = DEFAULT_SEARCHES if searches is None else searches
+        self.template_searches = DEFAULT_SEARCHES if searches is None else searches
 
         if target_label not in self.data.columns:
             raise KeyError(f"Invalid target label. Column \"{target_label}\" is not present in data.")
     
     def fit(self) -> None:
         X, y = self.data.drop(self.target_label, axis="columns"), self.data[self.target_label]
-        for search_key, search in self.searches.items():
+        self.searches_ = {}
+        for search_key, search_clone in self.template_searches.items():
             start_time = time.time()
             print(f"Fitting {search_key}... ".ljust(50), end="")
-            search.fit(X, y)
+            search_clone = clone(search_clone)
+            search_clone.fit(X, y)
+            self.searches_[search_key] = search_clone
             print(f"Took {round(time.time() - start_time, 2)} seconds.")
-            print(f"Best score: {round(search.best_score_, 5)}")
+            print(f"Best score: {round(search_clone.best_score_, 5)}")
             print()
 
     def score(self) -> pd.DataFrame:
         scores = {}
-        for search_key, search in self.searches.items():
+        for search_key, search in self.searches_.items():
             scores[search_key] = search.best_score_
         return pd.DataFrame({
             "Score": scores
@@ -234,30 +238,30 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
     def __init__(self, data: Dict[str, pd.DataFrame], target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
         self.data = data
         self.target_label = target_label
-        self.searches = DEFAULT_SEARCHES if searches is None else searches
+        self.template_searches = DEFAULT_SEARCHES if searches is None else searches
 
         for df in data.values():
             if target_label not in df.columns:
                 raise KeyError(f"Invalid target label. Column \"{target_label}\" is not present in every circuit's data.")
     
     def fit(self) -> None:
-        models_and_circuits = {}
+        self.searches_and_circuits_ = {}
 
-        for search_key in self.searches.keys():
-            models_and_circuits[search_key] = {}
+        for search_key in self.template_searches.keys():
+            self.searches_and_circuits_[search_key] = {}
 
         for circuit, data in self.data.items():
             print(f"==== Fitting models for {circuit} ====")
             circuit_start_time = time.time()
             
             X, y = data.drop([self.target_label], axis="columns"), data[self.target_label]
-            for search_key, search in self.searches.items():
+            for search_key, search in self.template_searches.items():
                 print(f"Fitting {search_key}... ".ljust(50), end="")
                 model_start_time = time.time()
 
-                model_search_copy = clone(search)
-                model_search_copy.fit(X, y)
-                models_and_circuits[search_key][circuit] = model_search_copy
+                search_clone = clone(search)
+                search_clone.fit(X, y)
+                self.searches_and_circuits_[search_key][circuit] = search_clone
 
                 print(f"Took {round(time.time() - model_start_time, 2)} seconds.")
             
@@ -265,12 +269,29 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
             print()
 
     def score(self) -> pd.DataFrame:
-        scores = {}
-        for search_key, search in self.searches.items():
-            scores[search_key] = search.best_score_
+        all_scores = self.all_scores()
         return pd.DataFrame({
-            "Score": scores
-        }) 
+            "Score": all_scores.mean(axis="index")
+        })
+    
+    def all_scores(self) -> pd.DataFrame:
+        all_scores = {}
+        for key in self.searches_and_circuits_.keys():
+            scores = {}
+            for circuit, model in self.searches_and_circuits_[key].items():
+                scores[circuit] = model.best_score_
+            all_scores[key] = scores
+
+        return pd.DataFrame(all_scores)
+    
+    def score_statistics(self) -> pd.DataFrame:
+        all_scores = self.all_scores()
+        return pd.DataFrame({
+            "MeanScore": all_scores.mean(axis="index"),
+            "MedianScore": all_scores.median(axis="index"),
+            "ScoreVariance": all_scores.var(axis="index"),
+            "MinScore": all_scores.min(axis="index")
+        })
 
         
 def create_regression_model_test(
