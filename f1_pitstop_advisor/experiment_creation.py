@@ -326,7 +326,7 @@ class AbstractRegressionModelTest(ABC):
     @abstractmethod
     def fit(self) -> None:
         """
-        Clones the grid searches provided in the constructor and fits them on the data.
+        Clones the grid searches provided in the constructor and fits the clones on the data.
         """
         pass
 
