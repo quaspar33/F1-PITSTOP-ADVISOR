@@ -41,9 +41,7 @@ class SessionPreparer:
         self,
         session_path: str,
         cutoff_date: datetime) -> None:
-
-
-
+        
         self.session_path = pathlib.Path(session_path)
         self.cutoff_date = cutoff_date
         self.sessions: List[Session] | None = None
