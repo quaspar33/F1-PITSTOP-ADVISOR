@@ -209,6 +209,10 @@ class AbstractRegressionModelTest(ABC):
     def score(self) -> pd.DataFrame:
         pass
 
+    @abstractmethod
+    def best_model(self) -> BaseEstimator | Dict[str, BaseEstimator]:
+        pass
+
 
 class RegressionModelTest(AbstractRegressionModelTest):
     def __init__(self, data: pd.DataFrame, target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
@@ -238,11 +242,11 @@ class RegressionModelTest(AbstractRegressionModelTest):
             scores[search_key] = search.best_score_
         return pd.DataFrame({
             "Score": scores
-        }) 
+        }).sort_values(by="Score", axis="index", ascending=False)
     
-    @abstractmethod
-    def best_model(self) -> BaseEstimator | Dict[str, BaseEstimator]:
-        pass
+    def best_model(self) -> BaseEstimator:
+        return self.searches_[self.score().index[0]].best_estimator_
+        
     
 
 class CircuitSeparatingModelTest(AbstractRegressionModelTest):
@@ -284,7 +288,7 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
         all_scores = self.all_scores()
         return pd.DataFrame({
             "Score": all_scores.mean(axis="index")
-        })
+        }).sort_values(by="Score", axis="index", ascending=False)
     
     def all_scores(self) -> pd.DataFrame:
         all_scores = {}
@@ -303,7 +307,23 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
             "MedianScore": all_scores.median(axis="index"),
             "ScoreVariance": all_scores.var(axis="index"),
             "MinScore": all_scores.min(axis="index")
-        })
+        }).sort_values(by="MeanScore", axis="index", ascending=False)
+    
+    def best_model(self) -> BaseEstimator | Dict[str, BaseEstimator]:
+        chosen_estimators = {}
+        all_scores = self.all_scores()
+        all_scores["BestModelType"] = all_scores.idxmax(axis="columns")
+        for circuit in self.searches_and_circuits_.keys():
+            chosen_estimator_key = all_scores.loc[circuit, "BestModelType"]
+            chosen_estimators[circuit] = self.searches_and_circuits_[circuit][chosen_estimator_key].best_estimator_
+
+        return chosen_estimators
+
+        
+
+        
+
+
 
         
 def create_regression_model_test(
