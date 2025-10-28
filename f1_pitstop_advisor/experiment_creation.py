@@ -27,15 +27,45 @@ import time
 import f1_pitstop_advisor
 import f1_pitstop_advisor.gather_data
 
+class SessionPreparer:
+    def __init__(
+        self,
+        session_path: str,
+        cutoff_date: datetime) -> None:
+
+        self.session_path = pathlib.Path(session_path)
+        self.cutoff_date = cutoff_date
+        self.sessions: List[Session] | None = None
+
+    def prepare_data(self) -> List[Session]:
+        if self.sessions is None:
+            print(f"Looking for session file at {self.session_path}...")
+            if self.session_path.is_file():
+                print(f"Supposed session file found.. Loading sessions...")
+                with open(self.session_path, "rb") as file:
+                    sessions: List[Session] = pickle.load(file)
+                    print(f"Sessions loaded.")
+            else:
+                print(f"Session file not found. Loading sessions from FastF1...")
+                sessions = f1_pitstop_advisor.gather_data._get_sessions(self.cutoff_date)
+                
+                self.session_path.parent.mkdir(exist_ok=True)
+                with open(self.session_path, "wb") as file:
+                    pickle.dump(sessions, file)
+                    print(f"Sessions loaded and saved.")
+            self.sessions = sessions
+        
+        return self.sessions
+
 class DataPreparer:
     def __init__(
         self, 
-        session_path: str, 
+        session_preparer: SessionPreparer,
         data_path: str,
         data_creation_function: Callable[[List[Session]], pd.DataFrame],
         cutoff_date: datetime) -> None:
 
-        self.session_path = pathlib.Path(session_path)
+        self.session_preparer = session_preparer
         self.data_path = pathlib.Path(data_path)
         self.data_creation_function = data_creation_function
         self.cutoff_date = cutoff_date
@@ -53,20 +83,8 @@ class DataPreparer:
                     print("Loaded data from pickle.")
 
         else:
-            print(f"Data file not found. Looking for session file at {self.session_path}...")
-            if self.session_path.is_file():
-                print(f"Supposed session file found.. Loading sessions...")
-                with open(self.session_path, "rb") as file:
-                    sessions: List[Session] = pickle.load(file)
-                    print(f"Sessions loaded.")
-            else:
-                print(f"Session file not found. Loading sessions from FastF1...")
-                sessions = f1_pitstop_advisor.gather_data._get_sessions(self.cutoff_date)
-                
-                self.session_path.parent.mkdir(exist_ok=True)
-                with open(self.session_path, "wb") as file:
-                    pickle.dump(sessions, file)
-                    print(f"Sessions loaded and saved.")
+            print(f"Data file not found. ", end="")
+            sessions = self.session_preparer.prepare_data()
 
             print("Generating data from sessions...")
             data = self.data_creation_function(sessions)
