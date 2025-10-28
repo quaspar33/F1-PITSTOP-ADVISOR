@@ -14,6 +14,7 @@ from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import make_pipeline
+from sklearn.exceptions import NotFittedError
 
 from sklearn.base import BaseEstimator, clone
 
@@ -222,6 +223,10 @@ class RegressionModelTest(AbstractRegressionModelTest):
 
         if target_label not in self.data.columns:
             raise KeyError(f"Invalid target label. Column \"{target_label}\" is not present in data.")
+        
+    def _check_fitted(self) -> None:
+        if not hasattr(self, "searches_"):
+            raise NotFittedError("Models have not been fitted yet. Call fit() before using this method.")
     
     def fit(self) -> None:
         X, y = self.data.drop(self.target_label, axis="columns"), self.data[self.target_label]
@@ -237,6 +242,8 @@ class RegressionModelTest(AbstractRegressionModelTest):
             print()
 
     def score(self) -> pd.DataFrame:
+        self._check_fitted()
+
         scores = {}
         for search_key, search in self.searches_.items():
             scores[search_key] = search.best_score_
@@ -245,6 +252,8 @@ class RegressionModelTest(AbstractRegressionModelTest):
         }).sort_values(by="Score", axis="index", ascending=False)
     
     def best_model(self) -> BaseEstimator:
+        self._check_fitted()
+
         return self.searches_[self.score().index[0]].best_estimator_
         
     
@@ -258,6 +267,11 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
         for df in data.values():
             if target_label not in df.columns:
                 raise KeyError(f"Invalid target label. Column \"{target_label}\" is not present in every circuit's data.")
+            
+    def _check_fitted(self) -> None:
+        if not hasattr(self, "searches_and_circuits_"):
+            raise NotFittedError("Models have not been fitted yet. Call fit() before using this method.")
+            
     
     def fit(self) -> None:
         self.searches_and_circuits_ = {}
@@ -285,12 +299,16 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
             print()
 
     def score(self) -> pd.DataFrame:
+        self._check_fitted()
+
         all_scores = self.all_scores()
         return pd.DataFrame({
             "Score": all_scores.mean(axis="index")
         }).sort_values(by="Score", axis="index", ascending=False)
     
     def all_scores(self) -> pd.DataFrame:
+        self._check_fitted()
+        
         all_scores = {}
         for key in self.searches_and_circuits_.keys():
             scores = {}
@@ -301,6 +319,8 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
         return pd.DataFrame(all_scores)
     
     def score_statistics(self) -> pd.DataFrame:
+        self._check_fitted()
+
         all_scores = self.all_scores()
         return pd.DataFrame({
             "MeanScore": all_scores.mean(axis="index"),
@@ -310,6 +330,8 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
         }).sort_values(by="MeanScore", axis="index", ascending=False)
     
     def best_model(self) -> BaseEstimator | Dict[str, BaseEstimator]:
+        self._check_fitted()
+
         chosen_estimators = {}
         all_scores = self.all_scores()
         all_scores["BestModelType"] = all_scores.idxmax(axis="columns")
@@ -318,12 +340,6 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
             chosen_estimators[circuit] = self.searches_and_circuits_[circuit][chosen_estimator_key].best_estimator_
 
         return chosen_estimators
-
-        
-
-        
-
-
 
         
 def create_regression_model_test(
