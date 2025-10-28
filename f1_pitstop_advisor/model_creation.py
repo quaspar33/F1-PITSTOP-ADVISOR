@@ -41,25 +41,36 @@ class DataPreparer:
         self.cutoff_date = cutoff_date
 
     def prepare_data(self) -> pd.DataFrame | Dict[str, pd.DataFrame]:
+        print(f"Looking for data file at {self.data_path}...")
         if pathlib.Path(self.data_path).is_file():
+            print(f"Supposed data file found. Loading data...")
             try:
                 data = pd.read_csv(self.data_path, header=None)
+                print("Loaded data from csv.")
             except pd.errors.ParserError:
                 with open(self.data_path, "rb") as file:
                     data = pickle.load(file)
+                    print("Loaded data from pickle.")
 
         else:
+            print(f"Data file not found. Looking for session file at {self.session_path}...")
             if pathlib.Path(self.session_path).is_file():
+                print(f"Supposed session file found.. Loading sessions...")
                 with open(self.session_path, "rb") as file:
                     sessions: List[Session] = pickle.load(file)
+                    print(f"Sessions loaded.")
             else:
+                print(f"Session file not found. Loading sessions from FastF1...")
                 sessions = f1_pitstop_advisor.gather_data._get_sessions(self.cutoff_date)
                 with open(self.session_path, "wb") as file:
                     pickle.dump(sessions, file)
+                    print(f"Sessions loaded and saved.")
 
+            print("Generating data from sessions...")
             data = self.data_creation_function(sessions)
             with open(self.data_path, "wb") as file:
                 pickle.dump(data, file)
+                print(f"Data has been generated and saved.")
 
         return data 
 
