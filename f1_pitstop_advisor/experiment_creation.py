@@ -28,16 +28,37 @@ import f1_pitstop_advisor
 import f1_pitstop_advisor.gather_data
 
 class SessionPreparer:
+    """
+    A class used to easily prepare and save a list of sessions for further use.
+
+    __init__ parameters:
+        * session_path — used to load and save sessions.
+    
+        * cutoff_data — sessions that happened after cutoff_date are ignored 
+          if sessions have to be loaded from FastF1.
+    """
     def __init__(
         self,
         session_path: str,
         cutoff_date: datetime) -> None:
 
+
+
         self.session_path = pathlib.Path(session_path)
         self.cutoff_date = cutoff_date
         self.sessions: List[Session] | None = None
 
-    def prepare_data(self) -> List[Session]:
+    def prepare_sessions(self) -> List[Session]:
+        """
+        Prepares sessions for further use. 
+
+        If it had prepared sessions before, it returns those sessions.
+        
+        Otherwise, f there is a file at session_path, it tries to load it, expecting 
+        a pickled object of type List[Session].
+
+        Otherwise, it loads sessions from FastF1 and saves them to session_path.
+        """
         if self.sessions is None:
             print(f"Looking for session file at {self.session_path}...")
             if self.session_path.is_file():
@@ -65,41 +86,74 @@ class SessionPreparer:
         return self.sessions
 
 class DataPreparer:
+    """
+    A class used for preparing data from a lift of sessions coming from a SessionPreparer.
+
+    Parameters:
+        * session_preparer — the SessionPreparer used to retrieve sessions that will later be used
+        for data generation.
+
+        * data_path — used to load and save data.
+    """
     def __init__(
         self, 
         session_preparer: SessionPreparer,
         data_path: str,
         data_creation_function: Callable[[List[Session]], pd.DataFrame] | Callable[[List[Session]], Dict[str, pd.DataFrame]]) -> None:
 
+
+
         self.session_preparer = session_preparer
         self.data_path = pathlib.Path(data_path)
         self.data_creation_function = data_creation_function
+        self.data: pd.DataFrame | Dict[str, pd.DataFrame] | None = None
 
     def prepare_data(self) -> pd.DataFrame | Dict[str, pd.DataFrame]:
-        print(f"Looking for data file at {self.data_path}...")
-        if self.data_path.is_file():
-            print(f"Supposed data file found. Loading data...")
-            try:
-                data = pd.read_csv(self.data_path, header=None)
-                print("Loaded data from csv.")
-            except (pd.errors.ParserError, UnicodeError):
-                with open(self.data_path, "rb") as file:
-                    data = pickle.load(file)
-                    print("Loaded data from pickle.")
+        """
+        Prepares data for further use. If it had already prepared data before,
+        it returns that same data. 
+        
+        Otherwise, if there is a file at data_path, it tries to load it,
+        expecting either a .csv file or a pickled dictionary of dataframes.
 
-        else:
-            print(f"Data file not found. ", end="")
-            sessions = self.session_preparer.prepare_data()
+        If no file is present, it generates one based on a list of sessions provided
+        by its session_preparer. After generation, it saves the data to data_path.
 
-            print("Generating data from sessions...")
-            data = self.data_creation_function(sessions)
+        Together with SessionPreparer, it returns data for further use 
+        and caches that data and the sessions the data comes from 
+        in specified locations. 
+        
+        This ensures anyone that uses your code featuring those two classes working together
+        can load the same data you did when they first run the code while avoiding unnecessary 
+        file loading and requests to FastF1 afterwards.
+        """
+        if self.data is None:
+            print(f"Looking for data file at {self.data_path}...")
+            if self.data_path.is_file():
+                print(f"Supposed data file found. Loading data...")
+                try:
+                    data = pd.read_csv(self.data_path, header=None)
+                    print("Loaded data from csv.")
+                except (pd.errors.ParserError, UnicodeError):
+                    with open(self.data_path, "rb") as file:
+                        data = pickle.load(file)
+                        print("Loaded data from pickle.")
 
-            self.data_path.parent.mkdir(exist_ok=True)
-            with open(self.data_path, "wb") as file:
-                pickle.dump(data, file)
-                print(f"Data has been generated and saved.")
+            else:
+                print(f"Data file not found. ", end="")
+                sessions = self.session_preparer.prepare_sessions()
 
-        return data 
+                print("Generating data from sessions...")
+                data = self.data_creation_function(sessions)
+
+                self.data_path.parent.mkdir(exist_ok=True)
+                with open(self.data_path, "wb") as file:
+                    pickle.dump(data, file)
+                    print(f"Data has been generated and saved.")
+
+            self.data = data
+
+        return self.data # type: ignore
 
 
 DEFAULT_SEARCHES = {
@@ -255,21 +309,54 @@ DEFAULT_SEARCHES = {
 
 
 class AbstractRegressionModelTest(ABC):
+    """
+    A class representing regression model tests. Allows you to perform a large scale test with multiple
+    ML algorithms and hyperparameter configurations. Also provides useful methods that can be used once
+    fitting is over.
+
+    __init__ parameters:
+        * data — the data used for the experiment.
+        * target_label — the target label column name within the data.
+        * searches — the GridSearchCVs that will be tested.
+    """
+    @abstractmethod
+    def __init__(self, data, target_label: str, searches: Dict[str, GridSearchCV] | None) -> None:
+        pass
 
     @abstractmethod
     def fit(self) -> None:
+        """
+        Clones the grid searches provided in the constructor and fits them on the data.
+        """
         pass
 
     @abstractmethod
     def score(self) -> pd.DataFrame:
+        """
+        Returns the score for each algorithm. In cases where each algorithm is applied
+        to multiple circuits, it returns the mean score for each of them.
+        """
         pass
 
     @abstractmethod
     def best_model(self) -> BaseEstimator | Dict[str, BaseEstimator]:
+        """
+        Returns the model that performed best in terms of mean score.
+        """
         pass
 
 
 class RegressionModelTest(AbstractRegressionModelTest):
+    """
+    The standard implementation of RegressionModelTest.
+
+    __init__ parameters:
+        * data — the data used for the experiment. In this implementation that should be
+          a single DataFrame.
+        * target_label — the target label column name within the data.
+        * searches — the GridSearchCVs that will be tested.
+
+    """
     def __init__(self, data: pd.DataFrame, target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
         self.data = data
         self.target_label = target_label
@@ -313,6 +400,17 @@ class RegressionModelTest(AbstractRegressionModelTest):
     
 
 class CircuitSeparatingModelTest(AbstractRegressionModelTest):
+    """
+    Like RegressionModelTest, but implemented for experiments that train a separete model for
+    every circuit. Because of this, it accepts a slightly different data format and also provides
+    extra post-fit methods.
+
+    __init__ parameters:
+        * data — the data used for the experiment. Since in this implementation we train a separate model
+          for every circuit, it should be dictionary with circuit names as keys and DataFrames as values.
+        * target_label — the target label column name within the data.
+        * searches — the GridSearchCVs that will be tested.
+    """
     def __init__(self, data: Dict[str, pd.DataFrame], target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
         self.data = data
         self.target_label = target_label
@@ -358,6 +456,9 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
         }).sort_values(by="Score", axis="index", ascending=False)
     
     def all_scores(self) -> pd.DataFrame:
+        """
+        Shows test scores for every ML algorithm/circuit combination.
+        """
         self._check_fitted()
 
         all_scores = {}
@@ -370,6 +471,9 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
         return pd.DataFrame(all_scores).T
     
     def score_statistics(self) -> pd.DataFrame:
+        """
+        Shows the most important score stats for each ML algorithm.
+        """
         self._check_fitted()
 
         all_scores = self.all_scores()
@@ -397,6 +501,15 @@ def create_regression_model_test(
         data: pd.DataFrame | Dict[str, pd.DataFrame], 
         target_label: str, 
         searches: Dict[str, GridSearchCV] | None = None) -> AbstractRegressionModelTest:
+
+        """
+        Creates and returns an appropriate model test object for the arguments passed in.
+
+        Parameters:
+            * data — either a single DataFrame, or, in cases where we want to train 
+            separate models foreach circuit, a dictionary where the keys are circuit names 
+            and values are DataFrames for each circuit.
+        """
 
         if isinstance(data, pd.DataFrame):
             return RegressionModelTest(data, target_label, searches)
