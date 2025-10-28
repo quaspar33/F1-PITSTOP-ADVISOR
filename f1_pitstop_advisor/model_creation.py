@@ -209,8 +209,6 @@ class AbstractRegressionModelTest(ABC):
     def score(self) -> pd.DataFrame:
         pass
 
-    @abstractmethod
-    def best_model(self) -> BaseEstimator | Dict[str, BaseEstimator]
 
 class RegressionModelTest(AbstractRegressionModelTest):
     def __init__(self, data: pd.DataFrame, target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
@@ -241,6 +239,10 @@ class RegressionModelTest(AbstractRegressionModelTest):
         return pd.DataFrame({
             "Score": scores
         }) 
+    
+    @abstractmethod
+    def best_model(self) -> BaseEstimator | Dict[str, BaseEstimator]:
+        pass
     
 
 class CircuitSeparatingModelTest(AbstractRegressionModelTest):
