@@ -48,6 +48,13 @@ class SessionPreparer:
             else:
                 print(f"Session file not found. Loading sessions from FastF1...")
                 sessions = f1_pitstop_advisor.gather_data._get_sessions(self.cutoff_date)
+                for i, session in zip(range(len(sessions)), sessions):
+                    try:
+                        session.load()
+                        print(f"Loaded session {i + 1} of {len(sessions)}")
+                    except RuntimeError as e:
+                        print(e)
+                        print(f"Failed to load session {i + 1} of {len(sessions)}")
                 
                 self.session_path.parent.mkdir(exist_ok=True)
                 with open(self.session_path, "wb") as file:
@@ -75,7 +82,7 @@ class DataPreparer:
             try:
                 data = pd.read_csv(self.data_path, header=None)
                 print("Loaded data from csv.")
-            except pd.errors.ParserError:
+            except (pd.errors.ParserError, UnicodeError):
                 with open(self.data_path, "rb") as file:
                     data = pickle.load(file)
                     print("Loaded data from pickle.")
