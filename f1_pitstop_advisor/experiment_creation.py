@@ -62,7 +62,7 @@ class SessionPreparer:
         if self.sessions is None:
             print(f"Looking for session file at {self.session_path}...")
             if self.session_path.is_file():
-                print(f"Supposed session file found.. Loading sessions...")
+                print(f"Supposed session file found. Loading sessions...")
                 with open(self.session_path, "rb") as file:
                     sessions: List[Session] = pickle.load(file)
                     print(f"Sessions loaded.")
