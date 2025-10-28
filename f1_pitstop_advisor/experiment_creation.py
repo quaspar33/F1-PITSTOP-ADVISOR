@@ -62,7 +62,7 @@ class DataPreparer:
         self, 
         session_preparer: SessionPreparer,
         data_path: str,
-        data_creation_function: Callable[[List[Session]], pd.DataFrame]) -> None:
+        data_creation_function: Callable[[List[Session]], pd.DataFrame] | Callable[[List[Session]], Dict[str, pd.DataFrame]]) -> None:
 
         self.session_preparer = session_preparer
         self.data_path = pathlib.Path(data_path)
