@@ -269,21 +269,17 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
                 raise KeyError(f"Invalid target label. Column \"{target_label}\" is not present in every circuit's data.")
             
     def _check_fitted(self) -> None:
-        if not hasattr(self, "searches_and_circuits_"):
+        if not hasattr(self, "circuits_and_searches_"):
             raise NotFittedError("Models have not been fitted yet. Call fit() before using this method.")
-            
     
     def fit(self) -> None:
-        self.searches_and_circuits_ = {}
-
-        for search_key in self.template_searches.keys():
-            self.searches_and_circuits_[search_key] = {}
+        self.circuits_and_searches_ = {}
 
         i = 1
         for circuit, data in self.data.items():
             print(f"==== Fitting models for {circuit} ({i}/{len(self.data)}) ====")
             circuit_start_time = time.time()
-            
+            self.circuits_and_searches_[circuit] = {}
             X, y = data.drop([self.target_label], axis="columns"), data[self.target_label]
             for search_key, search in self.template_searches.items():
                 print(f"Fitting {search_key}... ".ljust(50), end="")
@@ -291,7 +287,7 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
 
                 search_clone = clone(search)
                 search_clone.fit(X, y)
-                self.searches_and_circuits_[search_key][circuit] = search_clone
+                self.circuits_and_searches_[circuit][search_key] = search_clone
 
                 print(f"Took {round(time.time() - model_start_time, 2)} seconds.")
             
@@ -311,13 +307,13 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
         self._check_fitted()
 
         all_scores = {}
-        for key in self.searches_and_circuits_.keys():
+        for circuit in self.circuits_and_searches_.keys():
             scores = {}
-            for circuit, model in self.searches_and_circuits_[key].items():
-                scores[circuit] = model.best_score_
-            all_scores[key] = scores
+            for key, model in self.circuits_and_searches_[circuit].items():
+                scores[key] = model.best_score_
+            all_scores[circuit] = scores
 
-        return pd.DataFrame(all_scores)
+        return pd.DataFrame(all_scores).T
     
     def score_statistics(self) -> pd.DataFrame:
         self._check_fitted()
@@ -336,9 +332,9 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
         chosen_estimators = {}
         all_scores = self.all_scores()
         all_scores["BestModelType"] = all_scores.idxmax(axis="columns")
-        for circuit in self.searches_and_circuits_.keys():
+        for circuit in self.circuits_and_searches_.keys():
             chosen_estimator_key = all_scores.loc[circuit, "BestModelType"]
-            chosen_estimators[circuit] = self.searches_and_circuits_[circuit][chosen_estimator_key].best_estimator_
+            chosen_estimators[circuit] = self.circuits_and_searches_[circuit][chosen_estimator_key].best_estimator_
 
         return chosen_estimators
 
