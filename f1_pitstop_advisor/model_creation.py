@@ -15,7 +15,7 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import make_pipeline
 
-from sklearn.base import clone
+from sklearn.base import BaseEstimator, clone
 
 from typing import Callable, Dict, List
 from fastf1.core import Session
@@ -26,34 +26,41 @@ import time
 import f1_pitstop_advisor
 import f1_pitstop_advisor.gather_data
 
-def prepare_data(
+class DataPreparer:
+    def __init__(
         self, 
         session_path: str, 
         data_path: str,
         data_creation_function: Callable[[List[Session]], pd.DataFrame],
-        cutoff_date: datetime) -> pd.DataFrame | Dict[str, pd.DataFrame]:
-    
-    if pathlib.Path(data_path).is_file():
-        try:
-            data = pd.read_csv(data_path, header=None)
-        except pd.errors.ParserError:
-            with open(data_path, "rb") as file:
-                data = pickle.load(file)
+        cutoff_date: datetime) -> None:
 
-    else:
-        if pathlib.Path(session_path).is_file():
-            with open(session_path, "rb") as file:
-                sessions: List[Session] = pickle.load(file)
+        self.session_path = session_path
+        self.data_path = data_path
+        self.data_creation_function = data_creation_function
+        self.cutoff_date = cutoff_date
+
+    def prepare_data(self) -> pd.DataFrame | Dict[str, pd.DataFrame]:
+        if pathlib.Path(self.data_path).is_file():
+            try:
+                data = pd.read_csv(self.data_path, header=None)
+            except pd.errors.ParserError:
+                with open(self.data_path, "rb") as file:
+                    data = pickle.load(file)
+
         else:
-            sessions = f1_pitstop_advisor.gather_data._get_sessions(cutoff_date)
-            with open(session_path, "wb") as file:
-                pickle.dump(sessions, file)
+            if pathlib.Path(self.session_path).is_file():
+                with open(self.session_path, "rb") as file:
+                    sessions: List[Session] = pickle.load(file)
+            else:
+                sessions = f1_pitstop_advisor.gather_data._get_sessions(self.cutoff_date)
+                with open(self.session_path, "wb") as file:
+                    pickle.dump(sessions, file)
 
-        data = data_creation_function(sessions)
-        with open(data_path, "wb") as file:
-            pickle.dump(data, file)
+            data = self.data_creation_function(sessions)
+            with open(self.data_path, "wb") as file:
+                pickle.dump(data, file)
 
-    return data 
+        return data 
 
 
 DEFAULT_SEARCHES = {
@@ -202,6 +209,8 @@ class AbstractRegressionModelTest(ABC):
     def score(self) -> pd.DataFrame:
         pass
 
+    @abstractmethod
+    def best_model(self) -> BaseEstimator | Dict[str, BaseEstimator]
 
 class RegressionModelTest(AbstractRegressionModelTest):
     def __init__(self, data: pd.DataFrame, target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
