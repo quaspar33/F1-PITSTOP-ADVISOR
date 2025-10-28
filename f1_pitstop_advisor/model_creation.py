@@ -297,6 +297,7 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
             
             print(f"Took a total of {round(time.time() - circuit_start_time, 2)} seconds to fit all models for circuit \"{circuit}\".")
             print()
+            i += 1
 
     def score(self) -> pd.DataFrame:
         self._check_fitted()
@@ -308,7 +309,7 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
     
     def all_scores(self) -> pd.DataFrame:
         self._check_fitted()
-        
+
         all_scores = {}
         for key in self.searches_and_circuits_.keys():
             scores = {}
