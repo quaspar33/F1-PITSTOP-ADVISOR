@@ -13,12 +13,12 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.model_selection import GridSearchCV
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.exceptions import NotFittedError
 
 from sklearn.base import BaseEstimator, clone
 
-from typing import Callable, Dict, List
+from typing import Any, Callable, Dict, List
 from fastf1.core import Session
 from datetime import datetime
 
@@ -357,7 +357,7 @@ class RegressionModelTest(AbstractRegressionModelTest):
         * searches — the GridSearchCVs that will be tested.
 
     """
-    def __init__(self, data: pd.DataFrame, target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
+    def __init__(self, data: pd.DataFrame, target_label: str, searches: Dict[str, GridSearchCV[Any]] | None = None) -> None:
         self.data = data
         self.target_label = target_label
         self.template_searches = DEFAULT_SEARCHES if searches is None else searches
@@ -411,7 +411,7 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
         * target_label — the target label column name within the data.
         * searches — the GridSearchCVs that will be tested.
     """
-    def __init__(self, data: Dict[str, pd.DataFrame], target_label: str, searches: Dict[str, GridSearchCV] | None = None) -> None:
+    def __init__(self, data: Dict[str, pd.DataFrame], target_label: str, searches: Dict[str, GridSearchCV[Any]] | None = None) -> None:
         self.data = data
         self.target_label = target_label
         self.template_searches = DEFAULT_SEARCHES if searches is None else searches
@@ -500,7 +500,7 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
 def create_regression_model_test(
         data: pd.DataFrame | Dict[str, pd.DataFrame], 
         target_label: str, 
-        searches: Dict[str, GridSearchCV] | None = None) -> AbstractRegressionModelTest:
+        searches: Dict[str, GridSearchCV[Any]] | None = None) -> AbstractRegressionModelTest:
 
         """
         Creates and returns an appropriate model test object for the arguments passed in.
