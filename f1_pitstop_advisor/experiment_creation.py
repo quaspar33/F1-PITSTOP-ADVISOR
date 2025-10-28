@@ -7,7 +7,7 @@ import pathlib
 from sklearn.linear_model import LinearRegression, RidgeCV, LassoCV, ElasticNetCV
 from sklearn.svm import SVR
 from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor, AdaBoostRegressor, GradientBoostingRegressor
-from xgboost import XGBRegressor
+from xgboost import XGBRFRegressor, XGBRegressor
 from sklearn.neural_network import MLPRegressor
 
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
@@ -62,13 +62,11 @@ class DataPreparer:
         self, 
         session_preparer: SessionPreparer,
         data_path: str,
-        data_creation_function: Callable[[List[Session]], pd.DataFrame],
-        cutoff_date: datetime) -> None:
+        data_creation_function: Callable[[List[Session]], pd.DataFrame]) -> None:
 
         self.session_preparer = session_preparer
         self.data_path = pathlib.Path(data_path)
         self.data_creation_function = data_creation_function
-        self.cutoff_date = cutoff_date
 
     def prepare_data(self) -> pd.DataFrame | Dict[str, pd.DataFrame]:
         print(f"Looking for data file at {self.data_path}...")
@@ -168,6 +166,22 @@ DEFAULT_SEARCHES = {
             "n_estimators": [100, 200, 400],
             "max_depth": [5, 10, 20, None],
             "min_samples_split": [2, 5, 10]
+        }
+    ),
+
+    "XGBRFRegressor": GridSearchCV(
+        XGBRFRegressor(
+            random_state=42,
+            n_jobs=-1,
+            objective="reg:squarederror",
+            verbosity=0
+        ),
+        {
+            "n_estimators": [100, 200, 400],
+            "max_depth": [3, 6, 10],
+            "colsample_bynode": [0.8, 1.0],
+            "colsample_bytree": [0.8, 1.0],
+            "subsample": [0.8, 1.0]
         }
     ),
 
