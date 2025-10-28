@@ -507,8 +507,8 @@ def create_regression_model_test(
 
         Parameters:
             * data — either a single DataFrame, or, in cases where we want to train 
-            separate models foreach circuit, a dictionary where the keys are circuit names 
-            and values are DataFrames for each circuit.
+              separate models foreach circuit, a dictionary where the keys are circuit names 
+              and values are DataFrames for each circuit.
         """
 
         if isinstance(data, pd.DataFrame):
