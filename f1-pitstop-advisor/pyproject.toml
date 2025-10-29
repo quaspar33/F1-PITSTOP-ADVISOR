@@ -1,0 +1,30 @@
+[build-system]
+requires = [ "setuptools",]
+build-backend = "setuptools.build_meta"
+
+[project]
+requires-python = ">=3.9"
+name = "f1_pitstop_advisor"
+readme = "README.md"
+dynamic = [ "version",]
+dependencies = [ "ipython>=8.10", "jupyterlab>=3.0", "notebook", "kedro~=1.0.0",]
+
+[project.scripts]
+f1-pitstop-advisor = "f1_pitstop_advisor.__main__:main"
+
+[tool.kedro]
+package_name = "f1_pitstop_advisor"
+project_name = "f1-pitstop-advisor"
+kedro_init_version = "1.0.0"
+tools = "['None']"
+example_pipeline = "False"
+source_dir = "src"
+
+[project.entry-points."kedro.hooks"]
+
+[tool.setuptools.dynamic.version]
+attr = "f1_pitstop_advisor.__version__"
+
+[tool.setuptools.packages.find]
+where = [ "src",]
+namespaces = false
