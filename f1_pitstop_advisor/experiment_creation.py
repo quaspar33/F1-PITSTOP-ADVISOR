@@ -9,6 +9,7 @@ import pathlib
 from sklearn.linear_model import LinearRegression, RidgeCV, LassoCV, ElasticNetCV
 from sklearn.svm import SVR
 from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor, AdaBoostRegressor, GradientBoostingRegressor
+import test
 from xgboost import XGBRFRegressor, XGBRegressor
 from sklearn.neural_network import MLPRegressor
 
@@ -20,7 +21,7 @@ from sklearn.exceptions import NotFittedError
 
 from sklearn.base import BaseEstimator, clone
 
-from typing import Any, Callable, Dict, List, cast, overload
+from typing import Any, Callable, Dict, List, TypedDict, cast, overload
 from fastf1.core import Session
 from datetime import datetime
 
@@ -41,7 +42,7 @@ class SessionPreparer:
     """
     def __init__(
             self,
-            session_path: str,
+            session_path: str | pathlib.Path,
             cutoff_date: datetime) -> None:
         
         self.session_path = pathlib.Path(session_path)
@@ -93,17 +94,18 @@ class DataPreparer:
         * session_preparer — the SessionPreparer used to retrieve sessions that will later be used
         for data generation.
 
-        * data_path — used to load and save data.
+        * data_path — used to load and save data. None means data will not be loaded from file or saved, but always generated.
+          The sessions needed for data generation, however, will still be loaded/retrieved.
     """
     def __init__(
             self, 
             session_preparer: SessionPreparer,
-            data_path: str,
-            data_creation_function: Callable[[List[Session]], pd.DataFrame] | Callable[[List[Session]], Dict[str, pd.DataFrame]]) -> None:
+            data_path: str | pathlib.Path | None,
+            data_generation_function: Callable[[List[Session]], pd.DataFrame] | Callable[[List[Session]], Dict[str, pd.DataFrame]]) -> None:
 
         self.session_preparer = session_preparer
-        self.data_path = pathlib.Path(data_path)
-        self.data_creation_function = data_creation_function
+        self.data_path = pathlib.Path(data_path) if data_path is not None else None
+        self.data_generation_function = data_generation_function
         self.data: pd.DataFrame | Dict[str, pd.DataFrame] | None = None
 
     def prepare_data(self) -> pd.DataFrame | Dict[str, pd.DataFrame]:
@@ -125,29 +127,35 @@ class DataPreparer:
         can load the same data you did when they first run the code while avoiding unnecessary 
         file loading and requests to FastF1 afterwards.
         """
+
         if self.data is None:
-            print(f"Looking for data file at {self.data_path}...")
-            if self.data_path.is_file():
-                print(f"Supposed data file found. Loading data...")
-                try:
-                    data = pd.read_csv(self.data_path, header=None)
-                    print("Loaded data from csv.")
-                except (pd.errors.ParserError, UnicodeError):
-                    with open(self.data_path, "rb") as file:
-                        data = pickle.load(file)
-                        print("Loaded data from pickle.")
-
-            else:
-                print(f"Data file not found. ", end="")
+            if self.data_path is None:
                 sessions = self.session_preparer.prepare_sessions()
-
                 print("Generating data from sessions...")
-                data = self.data_creation_function(sessions)
+                data = self.data_generation_function(sessions)
+            else:
+                print(f"Looking for data file at {self.data_path}...")
+                if self.data_path.is_file():
+                    print(f"Supposed data file found. Loading data...")
+                    try:
+                        data = pd.read_csv(self.data_path, header=None)
+                        print("Loaded data from csv.")
+                    except (pd.errors.ParserError, UnicodeError):
+                        with open(self.data_path, "rb") as file:
+                            data = pickle.load(file)
+                            print("Loaded data from pickle.")
 
-                self.data_path.parent.mkdir(exist_ok=True)
-                with open(self.data_path, "wb") as file:
-                    pickle.dump(data, file)
-                    print(f"Data has been generated and saved.")
+                else:
+                    print(f"Data file not found. ", end="")
+                    sessions = self.session_preparer.prepare_sessions()
+
+                    print("Generating data from sessions...")
+                    data = self.data_generation_function(sessions)
+
+                    self.data_path.parent.mkdir(exist_ok=True)
+                    with open(self.data_path, "wb") as file:
+                        pickle.dump(data, file)
+                        print(f"Data has been generated and saved.")
 
             self.data = data
 
@@ -516,4 +524,121 @@ def create_regression_model_test(
 
     else:
         return CircuitSeparatingModelTest(data, target_label, searches)
+    
+
+class ExperimentConfig(TypedDict):
+    folder: str | pathlib.Path
+    sessions: SessionPreparer
+    test_configurations:  Dict[str, TestConfig]
+    searches: Dict[str, GridSearchCV[Any]] | None
+
+
+class TestConfig(TypedDict):
+    target_label: str
+    data_generation: Callable[[List[Session]], pd.DataFrame] | Callable[[List[Session]], Dict[str, pd.DataFrame]]
+    
+
+class Experiment:
+    """
+    Represents a mass experiment where multiple sets of GridSearchCVs are applied to multiple datasets.
+
+    __init__ parameters:
+        * configuration — a dictionary describing the configuration of each test. It should have the following structure:
+
+        {
+            "folder": <<folder path>>,
+            "sessions": <<SessionPreparer>>,
+            "test_configurations": {
+                "ExperimentA": {
+                    "target_label": <<target label>>,
+                    "data_generation": <<Callable[[List[Session]], pd.DataFrame] | Callable[[List[Session]], Dict[str, pd.DataFrame]]>>
+                },
+                "ExperimentB": {
+                    ...
+                },
+                ...
+            },
+            "searches": Dict[str, GridSearchCV] | None
+        }
+
+            Some explanations:
+                * test_configuratins contains configuration for each test. They will be used to 
+                  create objects implementing AbstractRegressionModelTest. Each of those objects represents 
+                  a model search for a single dataset.
+                * target_label specifies which attribute in the data is the target.
+                * data_generation is the function used to create data from a list of sessions.
+                * searches is specifies the GridSearchCVs to be used for each dataset. If set to None, a
+                  default set of searches is used.
+    """
+    def __init__(self, configuration: ExperimentConfig) -> None:
+            self.configuration = configuration
+
+    def run(self) -> Dict[str, AbstractRegressionModelTest]:
+        """
+        Runs the experiment and returns the results. Also saves the results to the configured folder.
+        """
+        data_folder = self.configuration["folder"]
+        sessions = self.configuration["sessions"]
+        searches = self.configuration["searches"]
+
+
+        results = {}
+        for name, test_cfg in self.configuration["test_configurations"].items():
+            data_preparer = DataPreparer(
+                sessions,
+                None, 
+                test_cfg["data_generation"])
+            
+            print(data_preparer.prepare_data())
+            test = create_regression_model_test(
+                data_preparer,
+                test_cfg["target_label"],
+                searches)
+            
+            test.fit()
+
+            pickle_path = pathlib.Path(data_folder, f"{name}.pickle")
+            pickle_path.parent.mkdir(exist_ok=True)
+            with open(pickle_path, "wb") as file:
+                pickle.dump(test, file)
+            results[name] = test
+
+        return results
+    
+    def load_results(self) -> Dict[str, AbstractRegressionModelTest]:
+        """
+        Loads results of the experiment from the configured folder. Only works if this experiment
+        or one with identical config has been run before.
+        """
+        return load_experiment_results(self.configuration)
+    
+    def run_or_load_results(self) -> Dict[str, AbstractRegressionModelTest]:
+        """
+        Loads experiment results from the configured folder if it had been run before. Otherwise,
+        runs the experiment and saves the results to be loaded later.
+        """
+        try:
+            return self.load_results()
+        except FileNotFoundError:
+            return self.run()
+        
+    
+def load_experiment_results(configuration: ExperimentConfig) -> Dict[str, AbstractRegressionModelTest]:
+    """
+    Loads results of the experiment from the configured folder. Only works if an experiment 
+    with a configuration just like the one specified as a parameter has been run before.
+
+    Parameters:
+        * configuration — used to retrieve experiment results.
+    """
+    data_folder = configuration["folder"]
+
+    results = {}
+    for name in configuration["test_configurations"].keys():
+        with open(pathlib.Path(data_folder, f"{name}.pickle"), "rb") as file:
+            results[name] = pickle.load(file)
+    return results
+
+        
+        
         
