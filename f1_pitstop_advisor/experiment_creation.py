@@ -20,7 +20,7 @@ from sklearn.exceptions import NotFittedError
 
 from sklearn.base import BaseEstimator, clone
 
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, cast, overload
 from fastf1.core import Session
 from datetime import datetime
 
@@ -40,9 +40,9 @@ class SessionPreparer:
           if sessions have to be loaded from FastF1.
     """
     def __init__(
-        self,
-        session_path: str,
-        cutoff_date: datetime) -> None:
+            self,
+            session_path: str,
+            cutoff_date: datetime) -> None:
         
         self.session_path = pathlib.Path(session_path)
         self.cutoff_date = cutoff_date
@@ -96,12 +96,10 @@ class DataPreparer:
         * data_path — used to load and save data.
     """
     def __init__(
-        self, 
-        session_preparer: SessionPreparer,
-        data_path: str,
-        data_creation_function: Callable[[List[Session]], pd.DataFrame] | Callable[[List[Session]], Dict[str, pd.DataFrame]]) -> None:
-
-
+            self, 
+            session_preparer: SessionPreparer,
+            data_path: str,
+            data_creation_function: Callable[[List[Session]], pd.DataFrame] | Callable[[List[Session]], Dict[str, pd.DataFrame]]) -> None:
 
         self.session_preparer = session_preparer
         self.data_path = pathlib.Path(data_path)
@@ -173,138 +171,138 @@ DEFAULT_SEARCHES = {
         {"pca__n_components": [0.98, 0.95, 0.9]}
     ),
 
-    "ElasticNetCV": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), ElasticNetCV(max_iter=100_000, l1_ratio=[0.2, 0.5, 0.8])),
-        {"pca__n_components": [0.98, 0.95, 0.9]}
-    ),
+    # "ElasticNetCV": GridSearchCV(
+    #     make_pipeline(StandardScaler(), PCA(), ElasticNetCV(max_iter=100_000, l1_ratio=[0.2, 0.5, 0.8])),
+    #     {"pca__n_components": [0.98, 0.95, 0.9]}
+    # ),
 
-    # Polynomial regression
-    "PolynomialLinearRegression": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), LinearRegression()),
-        {
-            "polynomialfeatures__degree": [2, 3],
-            "pca__n_components": [0.98, 0.95, 0.9]
-        }
-    ),
+    # # Polynomial regression
+    # "PolynomialLinearRegression": GridSearchCV(
+    #     make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), LinearRegression()),
+    #     {
+    #         "polynomialfeatures__degree": [2, 3],
+    #         "pca__n_components": [0.98, 0.95, 0.9]
+    #     }
+    # ),
 
-    "PolynomialRidgeCV": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), RidgeCV(alphas=(0.1, 1.0, 10.0))),
-        {
-            "polynomialfeatures__degree": [2, 3],
-            "pca__n_components": [0.98, 0.95, 0.9]
-        }
-    ),
+    # "PolynomialRidgeCV": GridSearchCV(
+    #     make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), RidgeCV(alphas=(0.1, 1.0, 10.0))),
+    #     {
+    #         "polynomialfeatures__degree": [2, 3],
+    #         "pca__n_components": [0.98, 0.95, 0.9]
+    #     }
+    # ),
 
-    "PolynomialLassoCV": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), LassoCV(max_iter=100_000, alphas=[0.01, 0.1, 1])),
-        {
-            "polynomialfeatures__degree": [2, 3],
-            "pca__n_components": [0.98, 0.95, 0.9]
-        }
-    ),
+    # "PolynomialLassoCV": GridSearchCV(
+    #     make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), LassoCV(max_iter=100_000, alphas=[0.01, 0.1, 1])),
+    #     {
+    #         "polynomialfeatures__degree": [2, 3],
+    #         "pca__n_components": [0.98, 0.95, 0.9]
+    #     }
+    # ),
 
-    "PolynomialElasticNetCV": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), ElasticNetCV(max_iter=100_000, l1_ratio=[0.2, 0.5, 0.8])),
-        {
-            "polynomialfeatures__degree": [2, 3],
-            "pca__n_components": [0.98, 0.95, 0.9]
-        }
-    ),
+    # "PolynomialElasticNetCV": GridSearchCV(
+    #     make_pipeline(StandardScaler(), PCA(), PolynomialFeatures(), ElasticNetCV(max_iter=100_000, l1_ratio=[0.2, 0.5, 0.8])),
+    #     {
+    #         "polynomialfeatures__degree": [2, 3],
+    #         "pca__n_components": [0.98, 0.95, 0.9]
+    #     }
+    # ),
 
-    # Bagging models
-    "RandomForestRegressor": GridSearchCV(
-        RandomForestRegressor(random_state=42, n_jobs=-1),
-        {
-            "n_estimators": [100, 200, 400],
-            "max_depth": [5, 10, 20, None],
-            "min_samples_split": [2, 5, 10]
-        }
-    ),
+    # # Bagging models
+    # "RandomForestRegressor": GridSearchCV(
+    #     RandomForestRegressor(random_state=42, n_jobs=-1),
+    #     {
+    #         "n_estimators": [100, 200, 400],
+    #         "max_depth": [5, 10, 20, None],
+    #         "min_samples_split": [2, 5, 10]
+    #     }
+    # ),
 
-    "ExtraTreesRegressor": GridSearchCV(
-        ExtraTreesRegressor(random_state=42, n_jobs=-1),
-        {
-            "n_estimators": [100, 200, 400],
-            "max_depth": [5, 10, 20, None],
-            "min_samples_split": [2, 5, 10]
-        }
-    ),
+    # "ExtraTreesRegressor": GridSearchCV(
+    #     ExtraTreesRegressor(random_state=42, n_jobs=-1),
+    #     {
+    #         "n_estimators": [100, 200, 400],
+    #         "max_depth": [5, 10, 20, None],
+    #         "min_samples_split": [2, 5, 10]
+    #     }
+    # ),
 
-    "XGBRFRegressor": GridSearchCV(
-        XGBRFRegressor(
-            random_state=42,
-            n_jobs=-1,
-            objective="reg:squarederror",
-            verbosity=0
-        ),
-        {
-            "n_estimators": [100, 200, 400],
-            "max_depth": [3, 6, 10],
-            "colsample_bynode": [0.8, 1.0],
-            "colsample_bytree": [0.8, 1.0],
-            "subsample": [0.8, 1.0]
-        }
-    ),
+    # "XGBRFRegressor": GridSearchCV(
+    #     XGBRFRegressor(
+    #         random_state=42,
+    #         n_jobs=-1,
+    #         objective="reg:squarederror",
+    #         verbosity=0
+    #     ),
+    #     {
+    #         "n_estimators": [100, 200, 400],
+    #         "max_depth": [3, 6, 10],
+    #         "colsample_bynode": [0.8, 1.0],
+    #         "colsample_bytree": [0.8, 1.0],
+    #         "subsample": [0.8, 1.0]
+    #     }
+    # ),
 
-    # Boosting models
-    "AdaBoostRegressor": GridSearchCV(
-        AdaBoostRegressor(random_state=42),
-        {
-            "n_estimators": [50, 100, 200],
-            "learning_rate": [0.01, 0.1, 0.5, 1.0]
-        }
-    ),
+    # # Boosting models
+    # "AdaBoostRegressor": GridSearchCV(
+    #     AdaBoostRegressor(random_state=42),
+    #     {
+    #         "n_estimators": [50, 100, 200],
+    #         "learning_rate": [0.01, 0.1, 0.5, 1.0]
+    #     }
+    # ),
 
-    "GradientBoostingRegressor": GridSearchCV(
-        GradientBoostingRegressor(random_state=42),
-        {
-            "n_estimators": [100, 200],
-            "learning_rate": [0.01, 0.05, 0.1],
-            "max_depth": [3, 5],
-            "subsample": [0.8, 1.0]
-        }
-    ),
+    # "GradientBoostingRegressor": GridSearchCV(
+    #     GradientBoostingRegressor(random_state=42),
+    #     {
+    #         "n_estimators": [100, 200],
+    #         "learning_rate": [0.01, 0.05, 0.1],
+    #         "max_depth": [3, 5],
+    #         "subsample": [0.8, 1.0]
+    #     }
+    # ),
 
-    "XGBRegressor": GridSearchCV(
-        XGBRegressor(random_state=42, n_jobs=-1, objective="reg:squarederror", verbosity=0),
-        {
-            "n_estimators": [100, 200, 400],
-            "max_depth": [3, 6, 10],
-            "learning_rate": [0.01, 0.1, 0.3],
-            "subsample": [0.8, 1.0],
-            "colsample_bytree": [0.8, 1.0]
-        }
-    ),
+    # "XGBRegressor": GridSearchCV(
+    #     XGBRegressor(random_state=42, n_jobs=-1, objective="reg:squarederror", verbosity=0),
+    #     {
+    #         "n_estimators": [100, 200, 400],
+    #         "max_depth": [3, 6, 10],
+    #         "learning_rate": [0.01, 0.1, 0.3],
+    #         "subsample": [0.8, 1.0],
+    #         "colsample_bytree": [0.8, 1.0]
+    #     }
+    # ),
 
-    # Support vector models
-    "SVR_linear": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), SVR(kernel="linear")),
-        {
-            "svr__C": [0.1, 1, 10, 100],
-            "pca__n_components": [0.98, 0.95, 0.9]
-        }
-    ),
+    # # Support vector models
+    # "SVR_linear": GridSearchCV(
+    #     make_pipeline(StandardScaler(), PCA(), SVR(kernel="linear")),
+    #     {
+    #         "svr__C": [0.1, 1, 10, 100],
+    #         "pca__n_components": [0.98, 0.95, 0.9]
+    #     }
+    # ),
 
-    "SVR_rbf": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), SVR(kernel="rbf")),
-        {
-            "svr__C": [0.1, 1, 10],
-            "svr__gamma": ["scale", 0.01, 0.1, 1.0],
-            "pca__n_components": [0.98, 0.95, 0.9]
-        }
-    ),
+    # "SVR_rbf": GridSearchCV(
+    #     make_pipeline(StandardScaler(), PCA(), SVR(kernel="rbf")),
+    #     {
+    #         "svr__C": [0.1, 1, 10],
+    #         "svr__gamma": ["scale", 0.01, 0.1, 1.0],
+    #         "pca__n_components": [0.98, 0.95, 0.9]
+    #     }
+    # ),
 
-    # MLP
-    "MLPRegressor": GridSearchCV(
-        make_pipeline(StandardScaler(), PCA(), MLPRegressor(max_iter=100_000, random_state=42)),
-        {
-            "mlpregressor__hidden_layer_sizes": [(16,), (24,), (24, 12), (16, 16), (16, 8)],
-            "mlpregressor__activation": ["relu", "tanh"],
-            "mlpregressor__alpha": [0.0001, 0.001, 0.01],
-            "mlpregressor__learning_rate_init": [0.001, 0.01],
-            "pca__n_components": [0.98, 0.95, 0.9]
-        }
-    ),
+    # # MLP
+    # "MLPRegressor": GridSearchCV(
+    #     make_pipeline(StandardScaler(), PCA(), MLPRegressor(max_iter=100_000, random_state=42)),
+    #     {
+    #         "mlpregressor__hidden_layer_sizes": [(16,), (24,), (24, 12), (16, 16), (16, 8)],
+    #         "mlpregressor__activation": ["relu", "tanh"],
+    #         "mlpregressor__alpha": [0.0001, 0.001, 0.01],
+    #         "mlpregressor__learning_rate_init": [0.001, 0.01],
+    #         "pca__n_components": [0.98, 0.95, 0.9]
+    #     }
+    # ),
 }
 
 
@@ -498,21 +496,24 @@ class CircuitSeparatingModelTest(AbstractRegressionModelTest):
 
         
 def create_regression_model_test(
-        data: pd.DataFrame | Dict[str, pd.DataFrame], 
+        data: DataPreparer | pd.DataFrame | Dict[str, pd.DataFrame], 
         target_label: str, 
         searches: Dict[str, GridSearchCV[Any]] | None = None) -> AbstractRegressionModelTest:
 
-        """
-        Creates and returns an appropriate model test object for the arguments passed in.
+    """
+    Creates and returns an appropriate model test object for the arguments passed in.
 
-        Parameters:
-            * data — either a single DataFrame, or, in cases where we want to train 
-              separate models foreach circuit, a dictionary where the keys are circuit names 
-              and values are DataFrames for each circuit.
-        """
+    Parameters:
+        * data — either a single DataFrame, or, in cases where we want to train 
+            separate models foreach circuit, a dictionary where the keys are circuit names 
+            and values are DataFrames for each circuit.
+    """
+    if isinstance(data, DataPreparer):
+        data = data.prepare_data()
 
-        if isinstance(data, pd.DataFrame):
-            return RegressionModelTest(data, target_label, searches)
-        else:
-            return CircuitSeparatingModelTest(data, target_label, searches)
-            
+    if isinstance(data, pd.DataFrame):
+        return RegressionModelTest(data, target_label, searches)
+
+    else:
+        return CircuitSeparatingModelTest(data, target_label, searches)
+        
