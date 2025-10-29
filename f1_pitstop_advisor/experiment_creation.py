@@ -577,30 +577,13 @@ class Experiment:
         """
         Runs the experiment and returns the results. Also saves the results to the configured folder.
         """
-        data_folder = self.configuration["folder"]
+        folder = self.configuration["folder"]
         sessions = self.configuration["sessions"]
         searches = self.configuration["searches"]
 
-
         results = {}
         for name, test_cfg in self.configuration["test_configurations"].items():
-            data_preparer = DataPreparer(
-                sessions,
-                None, 
-                test_cfg["data_generation"])
-            
-            print(data_preparer.prepare_data())
-            test = create_regression_model_test(
-                data_preparer,
-                test_cfg["target_label"],
-                searches)
-            
-            test.fit()
-
-            pickle_path = pathlib.Path(data_folder, f"{name}.pickle")
-            pickle_path.parent.mkdir(exist_ok=True)
-            with open(pickle_path, "wb") as file:
-                pickle.dump(test, file)
+            self._create_fit_and_save_test(name, test_cfg)
             results[name] = test
 
         return results
@@ -614,13 +597,44 @@ class Experiment:
     
     def run_or_load_results(self) -> Dict[str, AbstractRegressionModelTest]:
         """
-        Loads experiment results from the configured folder if it had been run before. Otherwise,
-        runs the experiment and saves the results to be loaded later.
+        Loads experiment results from the configured folder for tests that had already been performed.
+        The rest are run and saved to be loaded later.
         """
-        try:
-            return self.load_results()
-        except FileNotFoundError:
-            return self.run()
+
+        results = {}
+        for name, test_cfg in self.configuration["test_configurations"].items():
+            try:
+                results[name] = self._load_test(name)
+            except FileNotFoundError:
+                results[name] = self._create_fit_and_save_test(name, test_cfg)
+
+        return results
+    
+    def _load_test(self, test_name) -> AbstractRegressionModelTest:
+        pickle_path = pathlib.Path(self.configuration["folder"], f"{test_name}.pickle")
+        with open(pickle_path, "rb") as file:
+            return pickle.load(file)
+    
+    def _create_fit_and_save_test(self, test_name: str, test_cfg: TestConfig) -> AbstractRegressionModelTest:
+        data_preparer = DataPreparer(
+            self.configuration["sessions"],
+            None, 
+            test_cfg["data_generation"])
+        
+        print(data_preparer.prepare_data())
+        test = create_regression_model_test(
+            data_preparer,
+            test_cfg["target_label"],
+            self.configuration["searches"])
+        
+        test.fit()
+
+        pickle_path = pathlib.Path(self.configuration["folder"], f"{test_name}.pickle")
+        pickle_path.parent.mkdir(exist_ok=True)
+        with open(pickle_path, "wb") as file:
+            pickle.dump(test, file)
+
+        return test
         
     
 def load_experiment_results(configuration: ExperimentConfig) -> Dict[str, AbstractRegressionModelTest]:
