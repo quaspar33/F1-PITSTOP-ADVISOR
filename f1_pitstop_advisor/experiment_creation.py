@@ -604,9 +604,13 @@ class Experiment:
         results = {}
         for name, test_cfg in self.configuration["test_configurations"].items():
             try:
+                print(f"Attempting to load {name}... ", end="")
                 results[name] = self._load_test(name)
+                print()
             except FileNotFoundError:
+                print(f"Found no data for {name}. Running {name} from scratch... ")
                 results[name] = self._create_fit_and_save_test(name, test_cfg)
+                print(f"{name} results saved.")
 
         return results
     
