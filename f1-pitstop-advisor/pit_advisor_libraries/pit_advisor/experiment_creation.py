@@ -27,8 +27,7 @@ from datetime import datetime
 
 import time
 
-import f1_pitstop_advisor
-import f1_pitstop_advisor.gather_data
+import gather_data
 
 class SessionPreparer:
     """
@@ -69,7 +68,7 @@ class SessionPreparer:
                     print(f"Sessions loaded.")
             else:
                 print(f"Session file not found. Loading sessions from FastF1...")
-                sessions = f1_pitstop_advisor.gather_data._get_sessions(self.cutoff_date)
+                sessions = gather_data._get_sessions(self.cutoff_date)
                 for i, session in zip(range(len(sessions)), sessions):
                     try:
                         session.load()
