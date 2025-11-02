@@ -1,4 +1,4 @@
-"""f1-pitstop-advisor file for ensuring the package is executable
+"""f1_pitstop_advisor file for ensuring the package is executable
 as `f1-pitstop-advisor` and `python -m f1_pitstop_advisor`
 """
 import sys

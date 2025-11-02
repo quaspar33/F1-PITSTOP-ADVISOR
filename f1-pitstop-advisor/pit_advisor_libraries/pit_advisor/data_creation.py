@@ -1,4 +1,4 @@
-import f1_pitstop_advisor.data_processing_utils as utils
+import pit_advisor.data_processing_utils as utils
 
 import pandas as pd
 import numpy as np

@@ -11,7 +11,7 @@ from typing import List
 
 
 
-def _get_sessions(cutoff_date: datetime) -> List[Session]:
+def get_sessions(cutoff_date: datetime) -> List[Session]:
     warnings.filterwarnings('ignore')
 
     sessions = []
@@ -50,9 +50,21 @@ def _get_sessions(cutoff_date: datetime) -> List[Session]:
             print(f"Błąd podczas pobierania kalendarza dla roku {year}: {e}")
     return sessions
 
+
+def load_sessions(sessions: List[Session]) -> List[Session]:
+    for i, session in zip(range(len(sessions)), sessions):
+        try:
+            session.load()
+            print(f"Loaded session {i + 1} of {len(sessions)}")
+        except RuntimeError as e:
+            print(e)
+            print(f"Failed to load session {i + 1} of {len(sessions)}")
+    return sessions
+
+
 def extract_flag_data(cutoff_year: int) -> pd.DataFrame:
     target_flags = ['YELLOW', 'DOUBLE YELLOW', 'RED']
-    sessions = _get_sessions(cutoff_year)
+    sessions = get_sessions(cutoff_year)
     all_races_data = []
 
     for session in sessions:
@@ -82,7 +94,7 @@ def extract_flag_data(cutoff_year: int) -> pd.DataFrame:
         raise ValueError("Nie znaleziono danych do utworzenia DataFramu.")
 
 def extract_pitstop_data(cutoff_year: int) -> pd.DataFrame:
-    sessions = _get_sessions(cutoff_year)
+    sessions = get_sessions(cutoff_year)
     all_pitstops_data = []
 
     for session in sessions:

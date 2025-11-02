@@ -1,4 +1,4 @@
-"""f1-pitstop-advisor
+"""f1_pitstop_advisor
 """
 
 __version__ = "0.1"
