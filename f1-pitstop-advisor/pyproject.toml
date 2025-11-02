@@ -28,3 +28,6 @@ attr = "f1_pitstop_advisor.__version__"
 [tool.setuptools.packages.find]
 where = [ "src",]
 namespaces = false
+
+[tool.kedro_telemetry]
+project_id = "f461f20f13374277a4e44586bd82c69e"

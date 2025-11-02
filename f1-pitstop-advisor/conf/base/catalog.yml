@@ -39,6 +39,14 @@
 # (transcoding), templating and a way to reuse arguments that are frequently repeated. See more here:
 # https://docs.kedro.org/en/stable/data/data_catalog.html
 
+sessions:
+  type: pickle.PickleDataset
+  filepath: data/01_sessions/sessions.pickle
+
+data:
+  type: pandas.CSVDataset
+  filepath: data/02_data/data.csv
+
 companies:
   type: pandas.CSVDataset
   filepath: data/01_raw/companies.csv

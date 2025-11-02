@@ -27,7 +27,7 @@ from datetime import datetime
 
 import time
 
-import gather_data
+import pit_advisor.gather_data as gather_data
 
 class SessionPreparer:
     """
