@@ -11,7 +11,7 @@ from typing import List
 
 
 
-def _get_sessions(cutoff_date: datetime) -> List[Session]:
+def get_sessions(cutoff_date: datetime) -> List[Session]:
     warnings.filterwarnings('ignore')
 
     sessions = []
@@ -52,7 +52,7 @@ def _get_sessions(cutoff_date: datetime) -> List[Session]:
 
 def extract_flag_data(cutoff_year: int) -> pd.DataFrame:
     target_flags = ['YELLOW', 'DOUBLE YELLOW', 'RED']
-    sessions = _get_sessions(cutoff_year)
+    sessions = get_sessions(cutoff_year)
     all_races_data = []
 
     for session in sessions:
@@ -82,7 +82,7 @@ def extract_flag_data(cutoff_year: int) -> pd.DataFrame:
         raise ValueError("Nie znaleziono danych do utworzenia DataFramu.")
 
 def extract_pitstop_data(cutoff_year: int) -> pd.DataFrame:
-    sessions = _get_sessions(cutoff_year)
+    sessions = get_sessions(cutoff_year)
     all_pitstops_data = []
 
     for session in sessions:
