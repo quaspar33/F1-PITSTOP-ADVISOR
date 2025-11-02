@@ -8,5 +8,5 @@ def load_sessions() -> List[Session]:
     raise NotImplementedError()
 
 
-def prepare_data() -> pd.DataFrame:
+def prepare_data(sessions: List[Session]) -> pd.DataFrame:
     raise NotImplementedError()

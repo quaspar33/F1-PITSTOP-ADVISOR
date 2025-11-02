@@ -15,7 +15,7 @@ def split_data(data: pd.DataFrame, target_label: str) -> Tuple[pd.DataFrame, pd.
     return X, y
 
 
-def fit_model_search(X: pd.DataFrame, y: pd.Series, target_label: str) -> GridSearchCV:
+def fit_model_search(X: pd.DataFrame, y: pd.Series) -> GridSearchCV:
     gscv = GridSearchCV(XGBRegressor(), {})
     gscv.fit(X, y)
     return gscv
