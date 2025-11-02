@@ -69,13 +69,7 @@ class SessionPreparer:
             else:
                 print(f"Session file not found. Loading sessions from FastF1...")
                 sessions = gather_data.get_sessions(self.cutoff_date)
-                for i, session in zip(range(len(sessions)), sessions):
-                    try:
-                        session.load()
-                        print(f"Loaded session {i + 1} of {len(sessions)}")
-                    except RuntimeError as e:
-                        print(e)
-                        print(f"Failed to load session {i + 1} of {len(sessions)}")
+                gather_data.load_sessions(sessions)
                 
                 self.session_path.parent.mkdir(exist_ok=True)
                 with open(self.session_path, "wb") as file:
