@@ -177,3 +177,13 @@ cython_debug/
 
 
 ig_*
+
+
+data/*
+!data/parameters/
+!data/01_raw/
+!data/02_interim/
+!data/03_primary/
+!data/04_experiments/
+data/**/*.pickle
+
