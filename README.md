@@ -1,7 +1,12 @@
-# F1-PITSTOP-ADVISOR
+# Instructions
+## Virtual environment creation and preparation
+### Windows
+In order to create a virtual environment and install all packages associated with this project, run the following:  
+*py -3.11 -m venv .venv; .venv/Scripts/activate; pip install poetry>=2.2.1; poetry install --no-root*
 
-## Environment installation
-1. Install and activate conda
-1. Make sure you're in this project's root folder
-1. Run *"conda env create -f environment.yaml"*
-1. Make sure the environent "f1-pitstop-advisor" is activated, then run *"pip install -e . "*.
+### Mac
+If you're using Mac, use:  
+*python -3.11 -m venv .venv; source .venv/bin/activate; pip install poetry>=2.2.1; poetry install --no-root*
+
+
+If you already have a virtual environment set up, just run *poetry install*

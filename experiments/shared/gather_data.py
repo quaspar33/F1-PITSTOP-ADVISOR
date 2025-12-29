@@ -62,7 +62,7 @@ def load_sessions(sessions: List[Session]) -> List[Session]:
     return sessions
 
 
-def extract_flag_data(cutoff_year: int) -> pd.DataFrame:
+def extract_flag_data(cutoff_year: datetime) -> pd.DataFrame:
     target_flags = ['YELLOW', 'DOUBLE YELLOW', 'RED']
     sessions = get_sessions(cutoff_year)
     all_races_data = []
@@ -79,7 +79,7 @@ def extract_flag_data(cutoff_year: int) -> pd.DataFrame:
 
             messages_df = session.race_control_messages
             for flag in target_flags:
-                count = sum(messages_df['Flag'] == flag)
+                count = sum(messages_df['Flag'] == flag) # type: ignore
                 race_data[flag] = count
 
             all_races_data.append(race_data)
@@ -93,7 +93,7 @@ def extract_flag_data(cutoff_year: int) -> pd.DataFrame:
     else:
         raise ValueError("Nie znaleziono danych do utworzenia DataFramu.")
 
-def extract_pitstop_data(cutoff_year: int) -> pd.DataFrame:
+def extract_pitstop_data(cutoff_year: datetime) -> pd.DataFrame:
     sessions = get_sessions(cutoff_year)
     all_pitstops_data = []
 
