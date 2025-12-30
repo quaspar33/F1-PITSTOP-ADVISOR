@@ -5,17 +5,10 @@ import pickle
 
 from fastf1.core import Session
 
-def get_refined_lap_data_with_z_score(sessions: List[Session]) -> pd.DataFrame:
-    if not sessions:
-        raise ValueError(f"Parameter \"sessions\" may not be an empty list.")
-    data_list = []
-    for session in sessions:
-        session_data = _get_lap_data_with_weather(session)
-        _add_z_score_for_laps(session_data, inplace=True)
-        session_data = session_data.convert_dtypes()
-        data_list.append(session_data)
+def get_refined_lap_data_with_z_score(data: pd.DataFrame) -> pd.DataFrame:
 
-    data = pd.concat(data_list, ignore_index=True)
+    _add_z_score_for_laps(data, inplace=True)
+    data = data.convert_dtypes()
 
     # Add a feature determining whether there was a pit stop performed during each lap
     _add_is_pit_lap(data, inplace=True)
@@ -43,7 +36,7 @@ def get_refined_lap_data_with_z_score(sessions: List[Session]) -> pd.DataFrame:
     return final_data
     
 
-def _get_lap_data_with_weather(session: Session) -> pd.DataFrame:
+def get_lap_data_with_weather(session: Session) -> pd.DataFrame:
     # Prepare raw data
     weather_data: pd.DataFrame = session.weather_data.copy()  # type: ignore
     laps: pd.DataFrame = session.laps.copy()
@@ -68,6 +61,15 @@ def _get_lap_data_with_weather(session: Session) -> pd.DataFrame:
 
     data.drop(["TmpJoinIndex", "Time_y"], axis="columns", inplace=True)
     return data
+
+def get_sessions_by_circuit(sessions: List[Session]) -> Dict[str, List[Session]]:
+    sessions_by_circuit = {}
+    for session in sessions:
+        circuit = session.session_info["Meeting"]["Circuit"]["ShortName"]
+        if circuit not in sessions_by_circuit.keys():
+            sessions_by_circuit[circuit] = []
+        sessions_by_circuit[circuit].append(session)
+    return sessions_by_circuit
 
 
 def _add_lap_time_seconds(data: pd.DataFrame, inplace: bool = True) -> pd.DataFrame | None:
