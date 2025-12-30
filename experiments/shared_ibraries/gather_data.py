@@ -54,7 +54,12 @@ def get_sessions(cutoff_date: datetime) -> List[Session]:
 def load_sessions(sessions: List[Session]) -> List[Session]:
     for i, session in zip(range(len(sessions)), sessions):
         try:
-            session.load()
+            session.load(
+                laps = True,
+                telemetry = False,
+                weather = True,
+                messages = False
+            )
             print(f"Loaded session {i + 1} of {len(sessions)}")
         except RuntimeError as e:
             print(e)
