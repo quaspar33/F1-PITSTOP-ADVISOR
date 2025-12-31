@@ -5,37 +5,6 @@ import pickle
 
 from fastf1.core import Session
 
-def get_refined_lap_data_with_z_score(data: pd.DataFrame) -> pd.DataFrame:
-
-    _add_z_score_for_laps(data, inplace=True)
-    data = data.convert_dtypes()
-
-    # Add a feature determining whether there was a pit stop performed during each lap
-    _add_is_pit_lap(data, inplace=True)
-
-    # Select only relevant columns for further processing
-    selected_columns = [
-        "LapTimeZScore",
-        "IsPitLap",
-        "Compound",
-        "TyreLife",
-        "FreshTyre",
-        "LapNumber",
-        "AirTemp",
-        "Humidity",
-        "Pressure",
-        "Rainfall",
-        "TrackTemp",
-        "WindDirection",
-        "WindSpeed"
-    ]
-    filtered_data = data.loc[:, selected_columns]
-
-    # Convert categorical data to boolean values
-    final_data = pd.get_dummies(filtered_data)
-    return final_data
-    
-
 def get_lap_data_with_weather(session: Session) -> pd.DataFrame:
     # Prepare raw data
     weather_data: pd.DataFrame = session.weather_data.copy()  # type: ignore
@@ -62,15 +31,6 @@ def get_lap_data_with_weather(session: Session) -> pd.DataFrame:
     data.drop(["TmpJoinIndex", "Time_y"], axis="columns", inplace=True)
     return data
 
-def get_sessions_by_circuit(sessions: List[Session]) -> Dict[str, List[Session]]:
-    sessions_by_circuit = {}
-    for session in sessions:
-        circuit = session.session_info["Meeting"]["Circuit"]["ShortName"]
-        if circuit not in sessions_by_circuit.keys():
-            sessions_by_circuit[circuit] = []
-        sessions_by_circuit[circuit].append(session)
-    return sessions_by_circuit
-
 
 def _add_lap_time_seconds(data: pd.DataFrame, inplace: bool = True) -> pd.DataFrame | None:
     if not inplace:
@@ -82,7 +42,7 @@ def _add_lap_time_seconds(data: pd.DataFrame, inplace: bool = True) -> pd.DataFr
     else:
         return None
     
-def _add_is_pit_lap(data: pd.DataFrame, inplace: bool = True) -> pd.DataFrame | None:
+def add_is_pit_lap(data: pd.DataFrame, inplace: bool = True) -> pd.DataFrame | None:
     if not inplace:
         data = data.copy()
 
@@ -93,7 +53,7 @@ def _add_is_pit_lap(data: pd.DataFrame, inplace: bool = True) -> pd.DataFrame | 
         return None
 
 
-def _add_z_score_for_laps(data: pd.DataFrame, inplace: bool = True) -> pd.DataFrame | None:
+def add_z_score_for_laps(data: pd.DataFrame, inplace: bool = True) -> pd.DataFrame | None:
     if not inplace:
         data = data.copy()
     if "LapTimeSeconds" not in data.keys():
